@@ -1,0 +1,18 @@
+Ports:
+	Keypad:
+		PORTD: 1-3 - output
+		PORTE: 5   - output
+		PORTE: 1-4 - input
+	SW:
+		PORTF: 0, 4 - input
+	LED:
+		PORTF: 1, 2, 3 - outputs
+	LCD:
+		PORTB: 2-5 - output (DB4-7)
+		PORTA: 2, 3 - output (EN, RS)
+		
+
+
+LCD:
+
+	Busy flag: next operation not accepted. RS = 0 and R/W = 1 the busy flag is outputed to DB7
