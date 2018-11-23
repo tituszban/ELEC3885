@@ -3,10 +3,15 @@ unsigned long Read_Input(void);
 void Init_Keypad(void);
 void Delay(int ms);
 unsigned long Read_SW_Buttons(void);
+void PLL_Init(void);
+void Init_LCD(void);
 
 int main(void){
 	unsigned long input = 0;
 	Init_Keypad();
+	PLL_Init();
+	//Init_LCD();
+	
 	while(1){
 		input = Read_Input();
 		Set_LEDs(input & (1 << 0), input & (1 << 1), input & (1 << 2));

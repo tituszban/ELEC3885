@@ -117,10 +117,6 @@
       <TargetDriverDllRegistry>
         <SetRegEntry>
           <Number>0</Number>
-          <Key>DLGUARM</Key>
-        </SetRegEntry>
-        <SetRegEntry>
-          <Number>0</Number>
           <Key>DLGDARM</Key>
           <Name>(1010=-1,-1,-1,-1,0)(1007=-1,-1,-1,-1,0)(1008=-1,-1,-1,-1,0)(1009=-1,-1,-1,-1,0)(1012=-1,-1,-1,-1,0)(2304=-1,-1,-1,-1,0)(3004=-1,-1,-1,-1,0)</Name>
         </SetRegEntry>
@@ -163,7 +159,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>\ds.leeds.ac.uk\student\student32\el16ttb\_L3\ELEC 3885\Project\\ds.leeds.ac.uk\student\student32\el16ttb\_L3\ELEC 3885\Project\main.c</Filename>
+          <Filename>\\ds.leeds.ac.uk\student\ds.leeds.ac.uk\student\student32\el16ttb\_L3\ELEC 3885\Project\ds.leeds.ac.uk\student\student32\el16ttb\_L3\ELEC 3885\Project\main.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\Calculator\/ds.leeds.ac.uk/student/student32/el16ttb/_L3/ELEC 3885/Project/main.c\15</Expression>
         </Bp>
