@@ -37,6 +37,8 @@
 #define LED                     (*((volatile unsigned long *)0x40025038))
 
 
+void SysTick_WaitMS(unsigned long delayms);
+
 void PortE_Init(void){
 	volatile unsigned long delay;
   SYSCTL_RCGC2_R |= 0x00000010;      // 1) E clock
@@ -107,13 +109,6 @@ void Set_LEDs(unsigned char r, unsigned char g, unsigned char b){
 	LED = (Normalise(r) << 1) | (Normalise(g) << 3) | (Normalise(b) << 2);
 }
 
-void Delay(int ms){unsigned long volatile time;
-  time = 659687*20 / 91 * ms /100;  // 0.1sec # 727240
-  while(time){
-                time--;
-  }
-}
-
 void Send_Keypad(unsigned char i){
 	if(i == 3){
 		KEYPAD_SEND_E = (1 << 5);
@@ -131,9 +126,9 @@ unsigned long Scan_Keypad(void){
 	KEYPAD_SEND = 0x00;
 	for(i = 0; i < 4; i++){
 		Send_Keypad(i);
-		Delay(5);
+		SysTick_WaitMS(5);
 		result |= (KEYPAD_RECIEVE << (i * 4)) >> 1;
-		Delay(5);
+		SysTick_WaitMS(5);
 	}
 	return result;
 }

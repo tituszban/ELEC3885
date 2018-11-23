@@ -9,8 +9,8 @@
 #define GPIO_PORTA_CR_R         (*((volatile unsigned long *)0x40004524))
 #define GPIO_PORTA_AMSEL_R      (*((volatile unsigned long *)0x40004528))
 #define GPIO_PORTA_PCTL_R       (*((volatile unsigned long *)0x4000452C))
-#define LCDRS                   (*((volatile unsigned long *)0x40004010)) // PA3
-#define LCDEN                   (*((volatile unsigned long *)0x40004020)) // PA2
+#define LCDRS                   (*((volatile unsigned long *)0x40004020)) // PA3
+#define LCDEN                   (*((volatile unsigned long *)0x40004010)) // PA2
 
 #define GPIO_PORTB_DATA_R       (*((volatile unsigned long *)0x400053FC))
 #define GPIO_PORTB_DIR_R        (*((volatile unsigned long *)0x40005400))
@@ -63,12 +63,12 @@ void Set_EN(unsigned char v){
 }
 
 void Set_DB(unsigned char v){
-	LCDDB = v << 2;
+	LCDDB = v << 2; //2
 }
 
 void Pulse_EN(){
 	Set_EN(0x01);
-	SysTick_Wait50ns(9);
+	SysTick_Wait50ns(10);
 	Set_EN(0x00);
 }
 
@@ -78,16 +78,39 @@ void Send_Command(unsigned char rs, unsigned char db){
 	Pulse_EN();
 }
 
-void Send_Byte(unsigned char data){
+void Write_Command(unsigned char data){
 	Set_RS(0x00);
-	SysTick_WaitUS(40);
-	Set_DB(data & 0xF0 >> 4);
+	SysTick_WaitMS(40);
+	Set_DB((data & 0xF0) >> 4);
 	Pulse_EN();
 	SysTick_WaitMS(5);
 	Set_DB(data & 0x0F);
 	Pulse_EN();
 	SysTick_WaitMS(5);
 }
+
+void lcdWriteData(char data){
+	Set_RS(0x01);
+	SysTick_Wait50ns(4);
+	Set_DB((data & 0xF0) >> 4);
+	Pulse_EN();
+	SysTick_Wait50ns(4);
+	Set_DB(data & 0x0F);
+	Pulse_EN();
+	SysTick_Wait50ns(4);
+}
+
+void lcdClearScreen(void){
+	Write_Command(0x01); // Clear Display
+}
+
+void lcdGoto(unsigned char line, unsigned char pos){
+	unsigned char address = line == 1 ? 0x40 + pos : pos;
+	//unsigned char address = (line * 0x40) + pos;
+	address |= 0x80;
+	Write_Command(address);
+}
+
 
 void Init_LCD(void){
 	// init ports
@@ -96,22 +119,21 @@ void Init_LCD(void){
 	// reset pins
 	Set_EN(0x00);
 	Set_RS(0x00);
-	Set_DB(0x00);
+	Set_DB(0x03);
 	// setup sequence
 	SysTick_WaitMS(40);
-	Send_Command(0x00, 0x03);
+	Pulse_EN();
 	SysTick_WaitUS(4100);
-	Send_Command(0x00, 0x03);
+	Pulse_EN();
 	SysTick_WaitUS(100);
-	Send_Command(0x00, 0x03);
+	Pulse_EN();
 	SysTick_WaitUS(100);
-	Send_Command(0x00, 0x02);
+	Set_DB(0x02);
+	Pulse_EN();
+	
 	SysTick_WaitUS(100);
-	Send_Byte(0x28); // Function set, 4 bit, 2 lines 5x8 font
-	Send_Byte(0x08); // 
-	Send_Byte(0x0F); // 
-	
-	
-	
-	
+	Write_Command(0x28); // Function set, 4 bit, 2 lines, 5x8 font
+	Write_Command(0x0F); // Display on, Cursor on, Cursor blink on
+	lcdClearScreen();
+	Write_Command(0x06); // Cursor increment, display shift off
 }
