@@ -90,8 +90,8 @@ void Init_Keypad(void){
 }
 
 
-unsigned long Read_SW_Buttons(void){
-	unsigned long result = (SW_BUTTONS & 0x10) >> 3 | (SW_BUTTONS & 0x01);
+unsigned char Read_SW_Buttons(void){
+	unsigned char result = (SW_BUTTONS & 0x10) >> 3 | (SW_BUTTONS & 0x01);
 	result ^= 0x3;
 	return result;
 }
@@ -120,8 +120,8 @@ void Send_Keypad(unsigned char i){
 	}
 }
 
-unsigned long Scan_Keypad(void){
-	unsigned long result = 0x00;
+unsigned short Scan_Keypad(void){
+	unsigned short result = 0x00;
 	unsigned char i;
 	KEYPAD_SEND = 0x00;
 	for(i = 0; i < 4; i++){
@@ -134,5 +134,5 @@ unsigned long Scan_Keypad(void){
 }
 
 unsigned long Read_Input(void){
-	return (Read_SW_Buttons() << 16) | Scan_Keypad();
+	return ((unsigned long)Read_SW_Buttons() << 16) | (unsigned long)Scan_Keypad();
 }

@@ -80,7 +80,7 @@ void Send_Command(unsigned char rs, unsigned char db){
 
 void Write_Command(unsigned char data){
 	Set_RS(0x00);
-	SysTick_WaitMS(40);
+	SysTick_WaitMS(10);
 	Set_DB((data & 0xF0) >> 4);
 	Pulse_EN();
 	SysTick_WaitMS(5);
@@ -90,6 +90,7 @@ void Write_Command(unsigned char data){
 }
 
 void lcdWriteData(char data){
+	SysTick_WaitUS(100);
 	Set_RS(0x01);
 	SysTick_Wait50ns(4);
 	Set_DB((data & 0xF0) >> 4);
@@ -98,6 +99,13 @@ void lcdWriteData(char data){
 	Set_DB(data & 0x0F);
 	Pulse_EN();
 	SysTick_Wait50ns(4);
+}
+
+void lcdWriteString(char* str){
+	while(*str){
+		lcdWriteData(*str);
+		str++;
+	}
 }
 
 void lcdClearScreen(void){
@@ -133,7 +141,7 @@ void Init_LCD(void){
 	
 	SysTick_WaitUS(100);
 	Write_Command(0x28); // Function set, 4 bit, 2 lines, 5x8 font
-	Write_Command(0x0F); // Display on, Cursor on, Cursor blink on
+	Write_Command(0x0E); // Display on, Cursor on, Cursor blink on
 	lcdClearScreen();
 	Write_Command(0x06); // Cursor increment, display shift off
 }

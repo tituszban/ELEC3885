@@ -183,7 +183,7 @@
 // Set the following value to 1 to use the RCC2 register.  The RCC2 register
 // overrides some of the fields in the RCC register if it is used.
 //
-#define CFG_RCC2_USERCC2 0
+#define CFG_RCC2_USERCC2 1
 
 //      <o> SYSDIV2: System Clock Divisor <2-64>
 //          <i> Specifies the divisor used to generate the system clock from
@@ -192,7 +192,7 @@
 // The following value is the system clock divisor.  This will be applied if
 // USESYSDIV in RCC is enabled.  The valid range of dividers is 2-64.
 //
-#define CFG_RCC_SYSDIV2 4
+#define CFG_RCC_SYSDIV2 5
 
 //      <q> PWRDN2: Power Down PLL
 //          <i> Check this box to disable the PLL.  You must also choose
