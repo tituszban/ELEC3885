@@ -8,11 +8,14 @@ void lcdGoto(unsigned char line, unsigned char pos);
 //void lcdClearScreen(void);
 void update();
 
+float maths(char op,float arg1, float arg2);
+
 int main(void){
 	Init_Keypad();
 	PLL_Init();
 	Init_LCD();
 	lcdGoto(0, 0);
+	
 	
 	while(1){
 		update();

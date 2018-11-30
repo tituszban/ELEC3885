@@ -415,6 +415,11 @@
               <FileType>1</FileType>
               <FilePath>.\calculatorEngine.c</FilePath>
             </File>
+            <File>
+              <FileName>Maths.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Maths.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

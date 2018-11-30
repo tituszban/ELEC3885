@@ -63,6 +63,23 @@ float maths(char op,float arg1, float arg2) {
 	return ans;
 	
 }
+
+float absf(float v){
+	if(v < 0){
+		return -v;
+	}
+	return v;
+}
+
+char isInt(float n, int* out){
+	float tolerance = 1e-7;
+	if(absf(n - roundf(n)) < tolerance){
+			*out = (int)roundf(n);
+			return 0xFF;
+	}
+	return 0x00;
+}
+
 float constants(int element){
 	return consts[element];
 }
@@ -80,10 +97,14 @@ float asind(float arg1, float arg2){
 }
 
 float fact(float arg1, float arg2){
-	if (arg1 == 2){
-		return 2;
+	int n = 0;
+	if(!isInt(arg1, &n) || arg1 < 1){
+		return NAN;
+	}
+	if (n == 1 || n == 0){
+		return 1;
 	} else {
-		return arg1*fact(arg1-1,0);
+		return n*fact(n-1,0);
 	}
 }
 
