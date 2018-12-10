@@ -1,15 +1,4 @@
-
-//PLL related Defines
-#define SYSCTL_RIS_R          (*((volatile unsigned long *)0x400FE050))	
-#define SYSCTL_RCC_R          (*((volatile unsigned long *)0x400FE060))
-#define SYSCTL_RCC2_R         (*((volatile unsigned long *)0x400FE070))	
-
-//SysTick related Defines	
-#define NVIC_ST_CTRL_R        (*((volatile unsigned long *)0xE000E010))
-#define NVIC_ST_RELOAD_R      (*((volatile unsigned long *)0xE000E014))
-#define NVIC_ST_CURRENT_R     (*((volatile unsigned long *)0xE000E018))
-
-
+#include "PLL.h"
 
 void SysTick_Init(void){
   NVIC_ST_CTRL_R = 0;                   // disable SysTick during setup
@@ -44,23 +33,23 @@ void PLL_Init(void){
 
 
 // The delay parameter is in units of the 20 MHz core clock. (50 ns)
-void SysTick_Wait(unsigned long delay){
+void SysTickWait(unsigned long delay){
   NVIC_ST_RELOAD_R = delay-1;  // number of counts to wait
   NVIC_ST_CURRENT_R = 0;       // any value written to CURRENT clears
   while((NVIC_ST_CTRL_R&0x00010000)==0){ // wait for count flag
   }
 }
 
-void SysTick_WaitMS(unsigned long delayms){
-	SysTick_Wait(delayms * 20000);
+void SysTickWaitMS(unsigned long delayms){
+	SysTickWait(delayms * 20000);
 }
 
-void SysTick_Wait50ns(unsigned long delay50ns){
-	SysTick_Wait(delay50ns);
+void SysTickWait50ns(unsigned long delay50ns){
+	SysTickWait(delay50ns);
 }
 
-void SysTick_WaitUS(unsigned long delayus){
-	SysTick_Wait(delayus * 20);
+void SysTickWaitUS(unsigned long delayus){
+	SysTickWait(delayus * 20);
 }
 
 

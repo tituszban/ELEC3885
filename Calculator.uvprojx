@@ -420,6 +420,66 @@
               <FileType>1</FileType>
               <FilePath>.\Maths.c</FilePath>
             </File>
+            <File>
+              <FileName>calculator.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\calculator.h</FilePath>
+            </File>
+            <File>
+              <FileName>calculatorEngine.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\calculatorEngine.h</FilePath>
+            </File>
+            <File>
+              <FileName>util.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\util.c</FilePath>
+            </File>
+            <File>
+              <FileName>util.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\util.h</FilePath>
+            </File>
+            <File>
+              <FileName>PLL.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PLL.h</FilePath>
+            </File>
+            <File>
+              <FileName>LCD.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\LCD.h</FilePath>
+            </File>
+            <File>
+              <FileName>keypad.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\keypad.h</FilePath>
+            </File>
+            <File>
+              <FileName>Maths.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Maths.h</FilePath>
+            </File>
+            <File>
+              <FileName>EEPROM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\EEPROM.c</FilePath>
+            </File>
+            <File>
+              <FileName>EEPROM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\EEPROM.h</FilePath>
+            </File>
+            <File>
+              <FileName>login.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\login.c</FilePath>
+            </File>
+            <File>
+              <FileName>login.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\login.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

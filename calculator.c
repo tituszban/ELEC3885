@@ -1,68 +1,45 @@
-#define BUFFER_SIZE 256 // Up to 65,535
-
-unsigned char Read_SW_Buttons(void);
-unsigned short Scan_Keypad(void);
-void lcdGoto(unsigned char line, unsigned char pos);
-void lcdWriteData(char data);
-void lcdClearScreen(void);
-void SysTick_WaitUS(unsigned long delayus);
-void Write_Command(unsigned char data);
-void lcdWriteString(char* str);
-unsigned char Normalise(unsigned char v);
+#include "calculator.h"
 
 char _buffer[BUFFER_SIZE];
 unsigned short _buffer_index = 0;
+char _result[15];
 
 unsigned char _prev_button_count = 0;
-unsigned char _mode_bit = 0x01;
-unsigned char _eq_bit = 0x02;
 unsigned char _mode_pressed = 0;
 unsigned char _eq_pressed = 0;
-
-unsigned char _del_bit = 0x0004;
 
 unsigned char _mode = 0;
 
 unsigned char _store = 0;
+unsigned short _back_hold_counter = 0;
 
-unsigned char Evaluate(char* buffer, unsigned int index, float *out);
-
-unsigned short NormaliseShort(unsigned short v){
-	if(v){
-		return 0x1;
-	}
-	else{
-		return 0x0;
-	}
-}
-
-unsigned char inputToNum(unsigned short input, unsigned char mode, unsigned char eq){
+unsigned char InputToNum(unsigned short input, unsigned char mode, unsigned char eq){
 	unsigned int inp = input | (mode << 16) | (eq << 17);
 	
 	switch(inp){
-			case 0x1000: return 0; // 1
-			case 0x2000: return 1; // 2
-			case 0x4000: return 2; // 3
-			case 0x0100: return 3; // 4
-			case 0x0200: return 4; // 5
-			case 0x0400: return 5; // 6
-			case 0x0010: return 6; // 7
-			case 0x0020: return 7; // 8
-			case 0x0040: return 8; // 9
-			case 0x0001: return 9; // *
-			case 0x0002: return 10; // 0
-			case 0x0004: return 11; // #
-			case 0x8000: return 12; // A
-			case 0x0800: return 13; // B
-			case 0x0080: return 14; // C
-			case 0x0008: return 15; //D
+			case 0x01000: return 0;  // 1
+			case 0x02000: return 1;  // 2
+			case 0x04000: return 2;  // 3
+			case 0x00100: return 3;  // 4
+			case 0x00200: return 4;  // 5
+			case 0x00400: return 5;  // 6
+			case 0x00010: return 6;  // 7
+			case 0x00020: return 7;  // 8
+			case 0x00040: return 8;  // 9
+			case 0x00001: return 9;  // *
+			case 0x00002: return 10; // 0
+			case 0x00004: return 11; // #
+			case 0x08000: return 12; // A
+			case 0x00800: return 13; // B
+			case 0x00080: return 14; // C
+			case 0x00008: return 15; // D
 			case 0x10000: return 16; // mode
 			case 0x20000: return 17; // eq
 			default: return 0x00;
 		}
 }
 
-char charInputLookup(unsigned char input){		
+char CharInputLookup(unsigned char input){		
 	char lookup[][4] = {
 		{'1', 's', '1', 0x0},
 		{'2', 'd', '2', 0x0},
@@ -77,9 +54,9 @@ char charInputLookup(unsigned char input){
 		{'0', ')', '0', 0x0},
 		{'\b', 'P', '\b', 0x0},
 		{'+', 'r', 0x0, 'A'},
-		{'-', 'l', '-', 'B'},
+		{'-', 'l', 0x0, 'B'},
 		{'*', '^', 0x0, 'C'},
-		{'/', 'E', 0x0, 'D'},
+		{'/', 'E', 'E', 'D'},
 		{'>', '<', 0x0, '<'},
 		{'=', 'a', 'e', 'a'}};
 	
@@ -95,14 +72,14 @@ char* ExpandChar(char c){
 	switch(c){
 		case '*': return "x";
 		case '/': return "\xfd";
-		case 's': return "Sin(";
-		case 'd': return "Sin\xe9(";
+		case 's': return "Sin";
+		case 'd': return "Sin\xe9";
 		case 'r': return "\xe8";
-		case 'c': return "Cos(";
-		case 'v': return "Cos\xe9(";
+		case 'c': return "Cos";
+		case 'v': return "Cos\xe9";
 		case 'l': return "Log";
-		case 't': return "Tan(";
-		case 'y': return "Tan\xe9(";
+		case 't': return "Tan";
+		case 'y': return "Tan\xe9";
 		case 'a': return "ANS";
 		case 'e': return "(";
 		case 'P': return "\xf7";
@@ -113,7 +90,7 @@ char* ExpandChar(char c){
 	return r;
 }
 
-unsigned char Count_Pressed(unsigned short p){
+unsigned char CountPressed(unsigned short p){
 	unsigned char s = 0;
 	unsigned char i = 0;
 	for(i = 0; i < 16; i++){
@@ -122,7 +99,7 @@ unsigned char Count_Pressed(unsigned short p){
 	return s;
 }
 
-void render(void){
+void Render(void){
 	char str[15];
 	char *res;
 	unsigned short strI = 0;
@@ -131,26 +108,25 @@ void render(void){
 	for(i = 0; i < 15; i++){
 		str[i] = ' ';
 	}
-	Write_Command(0x0C);
-	lcdGoto(1, 15);
+	WriteCommand(0x0C);
+	LcdGoto(1, 15);
 	if(_mode == 0){
-		lcdWriteData(' ');
+		LcdWriteData(' ');
 	}
 	else if(_mode == 1){
-		lcdWriteData('\xff');
+		LcdWriteData('\xff');
 	}
 	else if(_mode == 2){
-		lcdWriteData('(');
+		LcdWriteData('(');
 	}
 	else if(_mode == 3){
 		if(_store){
-			lcdWriteData('S');
+			LcdWriteData('S');
 		}
 		else{
-			lcdWriteData('R');
+			LcdWriteData('R');
 		}
 	}
-	
 	
 	for(i = 0; i < _buffer_index; i++){
 		res = ExpandChar(_buffer[i]);
@@ -167,37 +143,123 @@ void render(void){
 		}
 	}
 	j = 15;
-	lcdGoto(0, 0);
+	LcdGoto(0, 0);
 	for(i = 0; i < 15; i++){
-		lcdWriteData(str[i]);
+		LcdWriteData(str[i]);
 		if(str[i] == 0x20 && i < j){
 			j = i;
 		}
 	}
-	lcdGoto(0, j);
-	Write_Command(0x0E);
+	LcdGoto(0, j);
+	WriteCommand(0x0E);
 		
 }
 
-void update(void){
-	unsigned short keypad = Scan_Keypad();
-	unsigned char special_buttons = Read_SW_Buttons();
-	unsigned char button_count = Count_Pressed(keypad) + Normalise(special_buttons & _mode_bit) + Normalise(special_buttons & _eq_bit);
+void DisplayError(char err){
+	_mode = 4;
+	WriteCommand(0x0C);
+	LcdClearScreen();
+	LcdGoto(0, 3);
+	LcdWriteString(  "- ERROR: -");
+	if(err == ERR_BUFFER_OVERFLOW){
+		LcdGoto(1, 0);
+		LcdWriteString("Buffer  overflow");
+	}
+	else if(err == ERR_INTERNAL){
+		LcdGoto(1, 0);
+		LcdWriteString("Internal error");
+	}
+	else if(err == ERR_SYNTAX){
+		LcdGoto(1, 2);
+		LcdWriteString( "Syntax error");
+	}
+	else if(err == ERR_MATHS){
+		LcdGoto(1, 2);
+		LcdWriteString( "Maths error");
+	}
+	else if(err == ERR_NUMBER_TOO_LARGE){
+		LcdGoto(1, 0);
+		LcdWriteString("Number overflow");
+	}
+	else if(err == ERR_NUMBER_TOO_SMALL){
+		LcdGoto(1, 0);
+		LcdWriteString("Number underflow");
+	}
+	else{
+		LcdGoto(1, 1);
+		LcdWriteString( "Unknown error");
+	}
+}
+
+void DisplayResult(char row){
+	short i;
+	char count_before_decimal = 0;
+	char decimal_index = 0;
+	LcdGoto(row, 0);
+	for(i = 14; i >= 0; i--){
+		if(_result[i] == '.'){
+			decimal_index = i;
+		}
+		else if(i > decimal_index){
+			if(count_before_decimal > 0){
+				count_before_decimal++;
+			}
+			else{
+				if(_result[i] != '0' && _result[i] != 0x00){
+					count_before_decimal = 1;
+				}
+			}
+		}
+	}
+	
+	if(count_before_decimal > 0){
+		LcdGoto(row, 16 - (decimal_index + 1 + count_before_decimal));
+	}
+	else{
+		LcdGoto(row, 16 - decimal_index);
+	}
+	LcdWriteString(_result);
+	
+	for(i = 0; i < 16; i++){
+		_result[i] = '0';
+	}
+}
+
+
+void Update(void){
+	unsigned short keypad = ReadKeypad();
+	unsigned char special_buttons = ReadSpecialButtons();
+	unsigned char button_count = CountPressed(keypad) + Normalise(special_buttons & MODE_BIT) + Normalise(special_buttons & EQ_BIT);
 	char charPressed;
 	char *res;
-	float result;
+	double result;
 	unsigned char err;
 	
-	// if only one button has just been pressed, update, otherwise, continue
+	// if only one button has just been pressed, Update, otherwise, continue
 	if(!(button_count == 1 && _prev_button_count != button_count) ){ // 0
+		if(button_count == 1){
+			charPressed = CharInputLookup(InputToNum(keypad, _mode_pressed, _eq_pressed));
+			if(charPressed == '\b'){
+				_back_hold_counter++;
+				if(_back_hold_counter > 40){
+					_back_hold_counter = 0;
+					_buffer_index = 0;
+					Render();
+				}
+			}
+		}
+		else{
+			_back_hold_counter = 0;
+		}
 		_prev_button_count = button_count;
-		_mode_pressed = (special_buttons & _mode_bit) != 0;
-		_eq_pressed = (special_buttons & _eq_bit) != 0;
+		_mode_pressed = (special_buttons & MODE_BIT) != 0;
+		_eq_pressed = (special_buttons & EQ_BIT) != 0;
 		return;
 	}
+	_back_hold_counter = 0;
 	_prev_button_count = button_count;
-	_mode_pressed = (special_buttons & _mode_bit) != 0;
-	_eq_pressed = (special_buttons & _eq_bit) != 0;
+	_mode_pressed = (special_buttons & MODE_BIT) != 0;
+	_eq_pressed = (special_buttons & EQ_BIT) != 0;
 	
 	// In const state, button pressed
 	if(_mode == 4){
@@ -205,12 +267,14 @@ void update(void){
 		// clean screen
 		_mode = 0;
 		_buffer_index = 0;
-		lcdClearScreen();
-		render();
-		return;
+		LcdClearScreen();
+		if(_eq_pressed){
+			Render();
+		  return;
+		}
 	}
 	
-	charPressed = charInputLookup(inputToNum(keypad, _mode_pressed, _eq_pressed));
+	charPressed = CharInputLookup(InputToNum(keypad, _mode_pressed, _eq_pressed));
 	
 	if(charPressed == 'a' && _store){
 		charPressed = 0x0;
@@ -230,18 +294,27 @@ void update(void){
 		if(_store){
 			_store = 0x00;
 			_mode = 4;
+			WriteCommand(0x0C);
+			err = Evaluate(_buffer, _buffer_index, &result);
+			if(err == SUCCESS){
+				int ret = snprintf(_result, sizeof(_result), "%.15f", result);
+				DisplayResult(0x1);
+				LcdGoto(1, 0);
+				
+				res = ExpandChar(charPressed);
+				while(*res){
+					LcdWriteData(*res);
+					res++;
+				}
+				LcdWriteData('\x7f');
+				StoreMemory(charPressed, result);
+			}
+			else{
+				DisplayError(err);
+			}	
 			// evaluate _buffer now.
 			//if success:
 			// put eval result to the first line
-			Write_Command(0x0C);
-			lcdGoto(1, 0);
-			lcdWriteData('\x7e');
-			res = ExpandChar(charPressed);
-			while(*res){
-				
-				lcdWriteData(*res);
-				res++;
-			}
 			return;
 		}
 	}
@@ -262,13 +335,17 @@ void update(void){
 	}
 	else if(charPressed == '='){
 		_mode = 4;
-		Write_Command(0x0C);
+		WriteCommand(0x0C);
 		err = Evaluate(_buffer, _buffer_index, &result);
-		
-		
-		// evaluate _buffer now. if success:
-		lcdGoto(1, 0);
-		lcdWriteData('=');
+		if(err == SUCCESS){
+			int ret = snprintf(_result, sizeof(_result), "%.15f", result);
+			DisplayResult(0x01);
+			LcdGoto(1, 0);
+			LcdWriteData('=');
+		}
+		else{
+			DisplayError(err);
+		}	
 		
 		return;
 	}
@@ -282,6 +359,12 @@ void update(void){
 			}
 			if(_buffer[_buffer_index] == 'r' || _buffer[_buffer_index] == 'l'){
 				_mode = 0;
+			}
+			if(_buffer_index > 0 &&
+				(_buffer[_buffer_index - 1] == 's' || _buffer[_buffer_index - 1] == 'd' ||
+			   _buffer[_buffer_index - 1] == 'c' || _buffer[_buffer_index - 1] == 'v' ||
+			   _buffer[_buffer_index - 1] == 't' || _buffer[_buffer_index - 1] == 'y'    )){
+				_buffer_index--;
 			}
 		}
 	}
@@ -300,18 +383,19 @@ void update(void){
 		_buffer_index++;
 	}
 	
+	if(charPressed == 's' || charPressed == 'd' || charPressed == 'c' || charPressed == 'v' || charPressed == 't' || charPressed == 'y'){
+		if(_buffer_index < BUFFER_SIZE){
+			_buffer[_buffer_index] = '(';
+			_buffer_index++;
+		}
+	}
+	
 	// check buffer overflow
 	if(_buffer_index >= BUFFER_SIZE){
-		_mode = 4;
-		Write_Command(0x0C);
-		lcdClearScreen();
-		lcdGoto(0, 2);
-		lcdWriteString(  "- ERROR: -");
-		lcdGoto(1, 0);
-		lcdWriteString("Buffer  overflow");
+		DisplayError(ERR_BUFFER_OVERFLOW);
 		return;
 		// or just _buffer_index--;
 	}
 	
-	render();
+	Render();
 }
