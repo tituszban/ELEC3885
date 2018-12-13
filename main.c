@@ -1,9 +1,10 @@
-#include "keypad.h"
-#include "calculator.h"
 #include "PLL.h"
 #include "LCD.h"
 #include "EEPROM.h"
+#include "keypad.h"
+#include "calculator.h"
 #include "Login.h"
+#include "calculatorEngine.h"
 
 /* STYLE GUIDE
 Functions:
@@ -26,20 +27,24 @@ Global private variables:
 Local variables:
 	Variables must be declared at the start of the function, using camel_case
 Constants:
-	Constants should be created in .h files using the #define directive and named in ALL_CAPS_CAMEL_CASE
+	Constants should be created in .h files using the #define directive and named in ALL_CAPS_SNAKE_CASE
 .h files:
 	Keep .h files clear and only have functions that are used by other files (public).
 	Treat every other function as private/internal functions
 */
 
 int main(void){
+	// Initialise everything
 	Keypad_Init();
 	PLL_Init();
 	Lcd_Init();
 	EEPROM_Init();
+	LoadMemory();
 	
+	// Start login screen
 	Login();
 	
+	// Call calculator update
 	while(1){
 		Update();
 	}

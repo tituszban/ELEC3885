@@ -108,6 +108,18 @@ void Login(){
 	WriteCommand(0x0C);
 	
 	// INTRO TEXT
+	LcdGoto(0, 3);
+	LcdWriteString("d{ o_O }b");
+	LcdGoto(1, 0);
+	LcdWriteString("HI, I'M DR ST3V3");
+	while(!LoginKeypadRead());
+	LcdClearScreen();
+	LcdGoto(0, 3);
+	LcdWriteString("d{ o_O }b");
+	LcdGoto(1, 0);
+	LcdWriteString("HOW CAN I HELP?");
+	while(!LoginKeypadRead());
+	LcdClearScreen();
 	
 	if (IsLocked()){
 		LcdGoto(0, 1);

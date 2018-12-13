@@ -53,9 +53,6 @@ void Keypad_Init(void){
 
 unsigned char ReadSpecialButtons(void){
 	unsigned char result = ((MODE & 0x10) >> 4) | ((EQUALS & 0x40) >> 5);
-	unsigned char mode = MODE;
-	unsigned char equals = EQUALS;
-	//result ^= 0x3;
 	return result;
 }
 

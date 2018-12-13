@@ -1,18 +1,21 @@
 #include "calculatorEngine.h"
 
-// forward typedef
+// forward typedef for Token struct
 typedef struct Token Token;
 
+// definition for the Token struct
 struct Token{
-	unsigned char t;
-	double value;
-	Token* left;
+	unsigned char t; // type of the Token
+	double value;		 // value of the Token
+	Token* left;     // Token left and right from this in the tree
 	Token* right;
 };
 
-Token _tokens[BUFFER_SIZE];
+Token _tokens[BUFFER_SIZE]; // evaluation buffer
 unsigned short _token_index = 0;
-Token _empty_token;
+Token _empty_token; // placeholder empty token
+Token _e_token;			// token used if log has no base
+Token _2_token;     // token used if root has no base
 
 double _memoryA = 0;
 double _memoryB = 0;
@@ -20,23 +23,32 @@ double _memoryC = 0;
 double _memoryD = 0;
 double _memoryANS = 0;
 
+// these are the only chars that are valid as inputs
 char _valid_chars[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-																'.', '+', '-', '*', '/', '!', '(', ')', '^',
-                                's', 'd', 'c', 'v', 't', 'y', 'r', 'l', 'e',
-																'E', 'P', 'A', 'B', 'C', 'D', 'a', 0x00};
+											 '.', '+', '-', '*', '/', '!', '(', ')', '^',
+                       's', 'd', 'c', 'v', 't', 'y', 'r', 'l', 'e',
+											 'E', 'P', 'A', 'B', 'C', 'D', 'a', 0x00};
 
-char _in_atomic[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', 0x00};
-char _named_atomic[] = {'E', 'P', 'A', 'B', 'C', 'D', 'a', 0x00};
-char _open_bracket[] = {'(', 'e', 0x00};
-char _operations[] =         {'-', '+', '/', '*', 'n', '!', '^', 'r', 'l', 'y', 'v', 'd', 't', 'c', 's', 0x00};
-char _operation_priority[] = { 0,   0,   1,   1,   2,   3,   4,   5,   5,   6,   6,   6,   6,   6,   6};
-char _middle_operator[] = {'-', '+', '/', '*', '^', 0x00};
-char _left_one_operator[] = {'y', 'v', 'd', 't', 'c', 's', 0x00}; // n is in special case
-char _right_one_operator[] = {'!', 0x00};
-char _left_two_operator[] = {'r', 'l', 0x00};
+char _in_atomic[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', 0x00}; // chars that can be inside an atomic number
+char _named_atomic[] = {'E', 'P', 'A', 'B', 'C', 'D', 'a', 0x00}; // values that have a number assigned to them
+char _open_bracket[] = {'(', 'e', 0x00}; // characters symboling an open bracket
+char _operations[] =         {'-', '+', '/', '*', 'n', '!', '^', 'r', 'l', 'y', 'v', 'd', 't', 'c', 's', 0x00}; // all operators
+char _operation_priority[] = { 0,   0,   1,   1,   2,   3,   4,   5,   5,   6,   6,   6,   6,   6,   6};        // priority for the operators for order of operations
+char _middle_operator[] = {'-', '+', '/', '*', '^', 0x00}; // operators that have their evaluated values on the two side
+char _left_one_operator[] = {'y', 'v', 'd', 't', 'c', 's', 0x00}; // operators that have one value to be evaluated to their right
+char _right_one_operator[] = {'!', 0x00};                         // operators that have one value to be evaluated to their left
+char _left_two_operator[] = {'r', 'l', 0x00};                     // operators that have two values to be evaluated to their right, separated by a special open bracket
 
+void LoadMemory(void){
+	_memoryA = 0;
+	_memoryB = 0;
+	_memoryC = 0;
+	_memoryD = 0;
+	_memoryANS = 0;
+}
 
 double CharToDouble(char c){
+	// force char into a number
 	switch(c){
 		case '1': return 1;
 		case '2': return 2;
@@ -53,6 +65,7 @@ double CharToDouble(char c){
 }
 
 double IdentifyAtomic(char a){
+	// Turn a named atomic value into a double
 	switch(a){
 		case 'E': return E;
 		case 'P': return PI;
@@ -66,15 +79,21 @@ double IdentifyAtomic(char a){
 }
 
 void StoreMemory(char a, double v){
+	// store value in memory and EEPROM
 	switch(a){
-		case 'A': _memoryA = v;
-		case 'B': _memoryB = v;
-		case 'C': _memoryC = v;
-		case 'D': _memoryD = v;
+		case 'A': _memoryA = v; break;
+		case 'B': _memoryB = v; break;
+		case 'C': _memoryC = v; break;
+		case 'D': _memoryD = v; break;
 		case 'a': _memoryANS = v;
 	}
+	// SAVE TO EEPROM
 }
-char BuildTree(unsigned short from, unsigned short to, Token** out){ // [from, to)
+char BuildTree(unsigned short from, unsigned short to, Token** out){
+	// Recursive function to build a tree of Tokens out of a section of the Token buffer
+	// section marked with [from, to)
+	// out carries the root token
+	// return an error code
 	int bracket_count = 0;
 	int i;
 	Token* selectedOperand;
@@ -83,14 +102,13 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){ // [from, t
 	unsigned short priority;
 	unsigned short atomic_count = 0;
 	Token* foundAtomic;
-	//Token* left;
-	//Token* right;
 	unsigned char leftFrom;
 	unsigned char leftTo;
 	unsigned char rightFrom;
 	unsigned char rightTo;
 	char err;
-		
+	
+	// remove brackets from either side
 	while(In(_tokens[from].t, _open_bracket) && _tokens[to - 1].t == ')'){
 		from++;
 		to--;
@@ -101,9 +119,11 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){ // [from, t
 		_tokens[from].t = 'n';
 	}
 	
+	// if length of the section is 0 or lower
 	if(from >= to){
 		return ERR_SYNTAX;
 	}
+	// if only one token and is an atomic return it as the root
 	if(to - 1 == from){
 		if(_tokens[from].t == 'a'){
 			*out = &_tokens[from];
@@ -114,7 +134,9 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){ // [from, t
 		}
 	}
 	
+	// go through the tokens in the section
 	for(i = to - 1; i >= from;){
+		// keep track of the depth of brackets we're in
 		if(_tokens[i].t == ')'){
 			bracket_count++;
 		}
@@ -122,12 +144,16 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){ // [from, t
 			bracket_count--;
 		}
 		
+		// if not inside a bracket
 		if(bracket_count == 0){
 			if(In(_tokens[i].t, _operations)){
 				// check operand validity
 				if(( (i <= from) || // check the left hand side
+						 // check middle operators, that it must have an atomic, an close bracket or a right operator to the left of it
 						 (In(_tokens[i].t, _middle_operator)    && (_tokens[i - 1].t == 'a' || _tokens[i - 1].t == ')' || In(_tokens[i - 1].t, _right_one_operator))) ||
+					   // check left one operator, that it must have an open bracket, middle operator or negate sign next to it
 						 (In(_tokens[i].t, _left_one_operator)  && (In(_tokens[i - 1].t, _open_bracket) || In(_tokens[i - 1].t, _middle_operator) || _tokens[i - 1].t == 'n')) ||
+				     // check left two operator 
 						 (In(_tokens[i].t, _left_two_operator)  && (In(_tokens[i - 1].t, _open_bracket) || In(_tokens[i - 1].t, _middle_operator) || _tokens[i - 1].t == 'n')) ||
 					   (In(_tokens[i].t, _right_one_operator) && (_tokens[i - 1].t == ')' || _tokens[i - 1].t == 'a' || In(_tokens[i - 1].t, _right_one_operator))))
 						&&
@@ -150,7 +176,7 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){ // [from, t
 				foundAtomic = &_tokens[i];
 			}
 		}
-		 i--;
+		i--;
 	}
 	
 	// no valid operand found
@@ -229,7 +255,15 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){ // [from, t
 			}
 		}
 		else{
-			(*out)->left = &_empty_token;
+			if((*out)->t == 'r'){
+				(*out)->left = &_2_token;
+			}
+			else if((*out)->t == 'l'){
+				(*out)->left = &_e_token;
+			}
+			else{
+				(*out)->left = &_empty_token;
+			}
 		}
 		err = BuildTree(rightFrom, rightTo, &((*out)->right));
 		if(err){
@@ -320,7 +354,10 @@ unsigned char Evaluate(char *buffer, unsigned short index, double *out){
 	
 	_token_index = 0;
 	_empty_token.t = '_';
-	//_empty_token.value = NAN; // TODO
+	_e_token.t = 'a';
+	_e_token.value = E;
+	_2_token.t = 'a';
+	_2_token.value = 2;
 	
 	*out = 0;
 	if(index <= 0){
@@ -417,7 +454,7 @@ unsigned char Evaluate(char *buffer, unsigned short index, double *out){
 	if(absd(*out) > MAX_VALUE){
 		return ERR_NUMBER_TOO_LARGE;
 	}
-	else if(absd(*out) < MIN_VALUE){
+	else if(absd(*out) > 0 && absd(*out) < MIN_VALUE){
 		return ERR_NUMBER_TOO_SMALL;
 	}
 	

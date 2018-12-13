@@ -26,6 +26,8 @@
 #define MODE_BIT 0x01
 #define EQ_BIT 0x02
 
+#define BACK_HOLD_THRESHOLD 40
+
 void Update(void);
 unsigned char CountPressed(unsigned short p);
 unsigned char InputToNum(unsigned short input, unsigned char mode, unsigned char eq);

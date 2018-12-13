@@ -89,8 +89,7 @@ void LcdClearScreen(void){
 }
 
 void LcdGoto(unsigned char line, unsigned char pos){
-	unsigned char address = line == 1 ? 0x40 + pos : pos;
-	//unsigned char address = (line * 0x40) + pos;
+	unsigned char address = (line == 1 ? 0x40 : 0) + pos;
 	address |= 0x80;
 	WriteCommand(address);
 }
