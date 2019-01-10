@@ -5,7 +5,7 @@ unsigned char _p_button_count = 0;
 char _psw_buffer[4];
 char _psw_index;
 
-char LoginCharLookup(unsigned char input){
+char LoginCharLookup(unsigned char input){ // convert input to displayable chars
 	switch(input){
 		case 0: return '1';
 		case 1: return '2';
@@ -30,7 +30,7 @@ char LoginCharLookup(unsigned char input){
 }
 
 
-char LoginKeypadRead(void){
+char LoginKeypadRead(void){ // generic keypad read specified for login. retur a single char currently pressed
 	unsigned short keypad = ReadKeypad();
 	unsigned char special_buttons = ReadSpecialButtons();
 	unsigned char button_count = CountPressed(keypad) + Normalise(special_buttons & MODE_BIT) + Normalise(special_buttons & EQ_BIT);
@@ -47,7 +47,7 @@ char LoginKeypadRead(void){
 	return LoginCharLookup(InputToNum(keypad, mode_pressed, eq_pressed));
 }
 
-unsigned int BufferToPsw(){
+unsigned int BufferToPsw(){ // turn pass into a single 32 bit number
 	unsigned int pass = 0x00;
 	char i;
 	for(i = 0; i < 4; i++){
@@ -56,7 +56,7 @@ unsigned int BufferToPsw(){
 	return pass;
 }
 
-void ClearBuffer(){
+void ClearBuffer(){ // clear password buffer
 	char j;
 	for(j = 0; j < 4; j++){
 		_psw_buffer[j] = 0;
@@ -71,23 +71,24 @@ unsigned char EnterPsw(unsigned int *result){
 	
 	do{
 		if(charPressed){
-			if(charPressed == '\b'){
+			if(charPressed == '\b'){ // delete last item in buffer
 				if(_psw_index > 0){
 					_psw_index--;
 				}
 			}
-			else if(_psw_index < 4){
+			else if(_psw_index < 4){ // add char to buffer
 				_psw_buffer[_psw_index] = charPressed;
 				_psw_index++;
 			}
 		}
+		// display password
 		LcdGoto(1, 4);
 		for(i = 0; i < 4; i++){
-			if(i < _psw_index){
+			if(i < _psw_index){ // for characters entered display a *
 				LcdWriteData('*');
 				LcdWriteData(' ');
 			}
-			else{
+			else{              // for characters missing display a _
 				LcdWriteData('_');
 				LcdWriteData(' ');
 			}
@@ -121,22 +122,23 @@ void Login(){
 	while(!LoginKeypadRead());
 	LcdClearScreen();
 	
-	if (IsLocked()){
+	if (IsLocked()){ // check if EEPROM is locked
 		LcdGoto(0, 1);
 		LcdWriteString("Enter password");
-		while(locked){
+		while(locked){ // while correct password is inputed
 			if (EnterPsw(&psw)){
 				if(Unlock(psw)){
 					locked = 0x0;
 				}
 			}
 		}
+		// login
 		LcdClearScreen();
 		LcdGoto(0, 4);
 		LcdWriteString("Unlocked");
 		SysTickWaitMS(500);
 	}
-	else {
+	else { // if eeprom is unlocked, setup a new password
 		LcdGoto(0, 2);
 		LcdWriteString("Set password");
 		while(locked){
