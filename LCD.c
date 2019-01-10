@@ -2,100 +2,100 @@
 
 void PortA_Init(void){
 	volatile unsigned long delay;
-  SYSCTL_RCGC2_R |= 0x00000001;      // 1) A clock
+  SYSCTL_RCGC2_R |= 0x00000001;      // A clock
   delay = SYSCTL_RCGC2_R;            // delay   
-  GPIO_PORTA_LOCK_R = 0x4C4F434B;    // 2) unlock PortA
-  GPIO_PORTA_CR_R |= 0x1C;           // allow changes to PA2-4
-  GPIO_PORTA_AMSEL_R &= 0x00;        // 3) disable analog function
-  GPIO_PORTA_PCTL_R &= 0x00000000;   // 4) GPIO clear bit PCTL  
-	GPIO_PORTA_DIR_R |=  0x0C;         // 5.2) PA2-3 output
-	GPIO_PORTA_DIR_R &=  ~0x10;         // 5.2) PA4 output
-	GPIO_PORTA_PDR_R |= 0x10;						// PA4 Pulldown resistor
-  GPIO_PORTA_AFSEL_R &= 0x00;        // 6) no alternate function
-  GPIO_PORTA_DEN_R |= 0x1C;          // 7) enable digital pins PA2-4
+  GPIO_PORTA_LOCK_R = 0x4C4F434B;    // Unlock PortA
+  GPIO_PORTA_CR_R |= 0x1C;           // Allow changes to PA2-4
+  GPIO_PORTA_AMSEL_R &= 0x00;        // Disable analog function
+  GPIO_PORTA_PCTL_R &= 0x00000000;   // GPIO clear bit PCTL  
+	GPIO_PORTA_DIR_R |=  0x0C;         // PA2-3 output
+	GPIO_PORTA_DIR_R &=  ~0x10;        // PA4 output
+	GPIO_PORTA_PDR_R |= 0x10;					 // PA4 Pulldown resistor
+  GPIO_PORTA_AFSEL_R &= 0x00;        // no alternate function
+  GPIO_PORTA_DEN_R |= 0x1C;          // enable digital pins PA2-4
 }
 
 void PortB_Init(void){
 	volatile unsigned long delay;
-  SYSCTL_RCGC2_R |= 0x00000002;      // 1) B clock
+  SYSCTL_RCGC2_R |= 0x00000002;      // B clock
   delay = SYSCTL_RCGC2_R;            // delay   
-  GPIO_PORTB_LOCK_R = 0x4C4F434B;    // 2) unlock PortB
-  GPIO_PORTB_CR_R |= 0x7C;           // allow changes to PB2-5
-  GPIO_PORTB_AMSEL_R &= 0x00;        // 3) disable analog function
-  GPIO_PORTB_PCTL_R &= 0x00000000;   // 4) GPIO clear bit PCTL  
-	GPIO_PORTB_DIR_R |= 0x3C;          // 5.2) PB2-5 output
-	GPIO_PORTB_DIR_R &= ~0x40;					 // PB6 Input
-	GPIO_PORTB_PDR_R |= 0x40;						// PB6 pulldown resistor
-  GPIO_PORTB_AFSEL_R &= 0x00;        // 6) no alternate function
-  GPIO_PORTB_DEN_R |= 0x7C;          // 7) enable digital pins PB2-5
+  GPIO_PORTB_LOCK_R = 0x4C4F434B;    // Unlock PortB
+  GPIO_PORTB_CR_R |= 0x7C;           // Allow changes to PB2-5
+  GPIO_PORTB_AMSEL_R &= 0x00;        // Disable analog function
+  GPIO_PORTB_PCTL_R &= 0x00000000;   // GPIO clear bit PCTL  
+	GPIO_PORTB_DIR_R |= 0x3C;          // PB2-5 output
+	GPIO_PORTB_DIR_R &= ~0x40;				 // PB6 Input
+	GPIO_PORTB_PDR_R |= 0x40;					 // PB6 pulldown resistor
+  GPIO_PORTB_AFSEL_R &= 0x00;        // no alternate function
+  GPIO_PORTB_DEN_R |= 0x7C;          // enable digital pins PB2-5
 }
 
-void SetRS(unsigned char v){
+void SetRS(unsigned char v){ // shorthand for setting the rs pin
 	LCDRS = Normalise(v) << 3;
 }
 
-void SetEN(unsigned char v){
+void SetEN(unsigned char v){ // shorthand for setting the en pin
 	LCDEN = Normalise(v) << 2;
 }
 
-void SetDB(unsigned char v){
-	LCDDB = v << 2; //2
+void SetDB(unsigned char v){ // shorthand for setting the db pins all at once
+	LCDDB = v << 2;
 }
 
-void PulseEN(){
+void PulseEN(){ // send 500ns pulse on the en pin
 	SetEN(0x01);
 	SysTickWait50ns(10);
 	SetEN(0x00);
 }
 
-void SendCommand(unsigned char rs, unsigned char db){
+void SendCommand(unsigned char rs, unsigned char db){ // set rs and db pins and send pulse
 	SetRS(rs);
 	SetDB(db);
 	PulseEN();
 }
 
-void WriteCommand(unsigned char data){
-	SetRS(0x00);
-	SysTickWaitMS(10);
-	SetDB((data & 0xF0) >> 4);
-	PulseEN();
-	SysTickWaitMS(5);
-	SetDB(data & 0x0F);
-	PulseEN();
-	SysTickWaitMS(5);
+void WriteCommand(unsigned char data){ // write full command
+	SetRS(0x00);                // reset rs
+	SysTickWaitMS(10);          // wait 10ms
+	SetDB((data & 0xF0) >> 4);  // send first nibble to db pins
+	PulseEN();                  // pulse en
+	SysTickWaitMS(5);           // wait 5ms
+	SetDB(data & 0x0F);         // send second nibble to db pins
+	PulseEN();                  // pulse en
+	SysTickWaitMS(5);           // wait 5 ms
 }
 
-void LcdWriteData(char data){
-	SysTickWaitUS(100);
-	SetRS(0x01);
-	SysTickWait50ns(4);
-	SetDB((data & 0xF0) >> 4);
-	PulseEN();
-	SysTickWait50ns(4);
-	SetDB(data & 0x0F);
-	PulseEN();
-	SysTickWait50ns(4);
+void LcdWriteData(char data){ // write data (same as command, but different timing and rs)
+	SysTickWaitUS(100);         // wait 100 us
+	SetRS(0x01);                // set rs
+	SysTickWait50ns(4);         // wait 200ns
+	SetDB((data & 0xF0) >> 4);  // send first nibble to the db pins
+	PulseEN();                  // pulse en
+	SysTickWait50ns(4);         // wait 200 ns
+	SetDB(data & 0x0F);         // send second nibble to the db pins
+	PulseEN();                  // pulse en
+	SysTickWait50ns(4);         // wait 200 ns
 }
 
-void LcdWriteString(char* str){
+void LcdWriteString(char* str){ // write every char in a null ended string
 	while(*str){
 		LcdWriteData(*str);
 		str++;
 	}
 }
 
-void LcdClearScreen(void){
-	WriteCommand(0x01); // Clear Display
+void LcdClearScreen(void){ // send clear display command
+	WriteCommand(0x01);
 }
 
-void LcdGoto(unsigned char line, unsigned char pos){
-	unsigned char address = (line == 1 ? 0x40 : 0) + pos;
-	address |= 0x80;
-	WriteCommand(address);
+void LcdGoto(unsigned char line, unsigned char pos){ // set the cursor position
+	unsigned char address = (line == 1 ? 0x40 : 0) + pos; // line sets the 0x40 bit, pos sets the rest
+	address |= 0x80; // set the 0x80 bit
+	WriteCommand(address); // send command
 }
 
 
-void Lcd_Init(void){
+void Lcd_Init(void){ // lcd init, as specified in the datasheet
 	// init ports
 	PortA_Init();
 	PortB_Init();
