@@ -153,70 +153,84 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){
 						 (In(_tokens[i].t, _middle_operator)    && (_tokens[i - 1].t == 'a' || _tokens[i - 1].t == ')' || In(_tokens[i - 1].t, _right_one_operator))) ||
 					   // check left one operator, that it must have an open bracket, middle operator or negate sign next to it
 						 (In(_tokens[i].t, _left_one_operator)  && (In(_tokens[i - 1].t, _open_bracket) || In(_tokens[i - 1].t, _middle_operator) || _tokens[i - 1].t == 'n')) ||
-				     // check left two operator 
+				     // check left two operator, that is must have an open bracket, middle operator or negate sign to the left of it
 						 (In(_tokens[i].t, _left_two_operator)  && (In(_tokens[i - 1].t, _open_bracket) || In(_tokens[i - 1].t, _middle_operator) || _tokens[i - 1].t == 'n')) ||
+						 // check right one operator, that it must have a close bracket, atomic or right one operator to the left of it
 					   (In(_tokens[i].t, _right_one_operator) && (_tokens[i - 1].t == ')' || _tokens[i - 1].t == 'a' || In(_tokens[i - 1].t, _right_one_operator))))
 						&&
-					 ( (i >= to - 1) ||
+					 ( (i >= to - 1) || // check the right hand side
+						 // check middle operator, that it must have an atomic, open bracket, left one, left two or middle operator to the right of it
 				     (In(_tokens[i].t, _middle_operator)    && (_tokens[i + 1].t == 'a' || In(_tokens[i + 1].t, _open_bracket) || In(_tokens[i + 1].t, _left_one_operator) || In(_tokens[i + 1].t, _left_two_operator) || In(_tokens[i + 1].t, _middle_operator))) ||
+						 // check left one operator, that it must have an open bracket to the right to it
 						 (In(_tokens[i].t, _left_one_operator)  && (In(_tokens[i + 1].t, _open_bracket))) ||
+						 // check left two operator, that it must have an open bracket, middle operator or atomic to the right to it
 						 (In(_tokens[i].t, _left_two_operator)  && (In(_tokens[i + 1].t, _open_bracket) || In(_tokens[i + 1].t, _middle_operator) || _tokens[i + 1].t == 'a')) ||
+						 // check right one operator, that it must have a close bracket, middle operator or right one operator to the right of it
 					   (In(_tokens[i].t, _right_one_operator) && (_tokens[i + 1].t == ')' || In(_tokens[i + 1].t, _middle_operator) || In(_tokens[i + 1].t, _right_one_operator))) ||
+						 // check negate sign, that it must have an atomic, open bracket, left one, left two or middle operator to the right of it
 						 (_tokens[i].t == 'n'                   && (_tokens[i + 1].t == 'a' || In(_tokens[i + 1].t, _open_bracket) || In(_tokens[i + 1].t, _left_one_operator) || In(_tokens[i + 1].t, _left_two_operator) || In(_tokens[i + 1].t, _middle_operator))))){
+					// if operand is valid, get the priority of it
 					priority = _operation_priority[IndexOf(_tokens[i].t, _operations)];
+					// select the lowest priority operator
 					if(priority < selectedPriority){
-						selectedPriority = priority;
+						selectedPriority = priority;	// save operator token info
 						selectedOperand = &_tokens[i];
 						selectedIndex = i;
 					}
 				}
 			}
-			else if(_tokens[i].t == 'a'){
+			else if(_tokens[i].t == 'a'){ // save info about the atomics in the buffer
 				atomic_count++;
 				foundAtomic = &_tokens[i];
 			}
 		}
-		i--;
+		i--;	// had a bug where for won't work unless decrement is here
 	}
 	
 	// no valid operand found
 	if(selectedPriority >= 15){
-		if(atomic_count == 1){
+		if(atomic_count == 1){ // if there's only a single atomic, return it
 			*out = foundAtomic;
 			return SUCCESS;
 		}
-		return ERR_SYNTAX;
+		return ERR_SYNTAX; // throw syntax error
 	}
 	*out = selectedOperand;
+	// split and build tree from the buffer based on the type of operator
 	if(In((*out)->t, _middle_operator)){
+		// middle operator: left from the start until the operator, and right from the operator to the end
 		leftFrom = from;
 		leftTo = selectedIndex;
 		rightFrom = selectedIndex + 1;
 		rightTo = to;
-
+		// built tree to the left, and store tree in the left leaf of the operand token
 		err = BuildTree(leftFrom, leftTo, &((*out)->left));
 		if(err){
 			return err;
 		}
+		// build tree to the right, and store tree in the right leaf of the operand token
 		err = BuildTree(rightFrom, rightTo, &((*out)->right));
 		if(err){
 			return err;
 		}
 	}
 	else if(In((*out)->t, _left_one_operator)){
+		// left one operator: use everything to the right of the operator. Throw error, if the token is not the left most token
 		if(selectedIndex != from){
 			return ERR_SYNTAX;
 		}
 		leftFrom = selectedIndex + 1;
 		leftTo = to;
-
+		// build tree and store it in the left leaf of the operand token
 		err = BuildTree(leftFrom, leftTo, &((*out)->left));
 		if(err){
 			return err;
 		}
+		// fill right leaf with the empty token
 		(*out)->right = &_empty_token;
 	}
 	else if(In((*out)->t, _right_one_operator)){
+		// same as left one operator, use everything to the left, throw error if not the right most token
 		if(selectedIndex != to - 1){
 			return ERR_SYNTAX;
 		}
@@ -229,16 +243,18 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){
 		(*out)->right = &_empty_token;
 	}
 	else if(In((*out)->t, _left_two_operator)){
+		// left two operator: find the base and the argument of the operator, and build tree. Throw error if not the left most token
 		if(selectedIndex != from){
 			return ERR_SYNTAX;
 		}
+		// find special open bracket
 		leftFrom = selectedIndex + 1;
 		i = leftFrom;
 		while(_tokens[i].t != 'e' && i < to){
 			i++;
 		}
 		if(i >= to){
-			return ERR_SYNTAX;
+			return ERR_SYNTAX; // open bracket not found
 		}
 		if(i > leftFrom + 2){
 			return ERR_SYNTAX; // more than one token in L2 arg
@@ -248,29 +264,31 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){
 		rightFrom = i;
 		rightTo = to;
 		
-		if(leftFrom < leftTo){		
+		if(leftFrom < leftTo){ // argument found, build tree from it
 			err = BuildTree(leftFrom, leftTo, &((*out)->left));
 			if(err){
 				return err;
 			}
 		}
-		else{
+		else{ // no argument, set default token
 			if((*out)->t == 'r'){
-				(*out)->left = &_2_token;
+				(*out)->left = &_2_token; // unspecified root is base 2
 			}
 			else if((*out)->t == 'l'){
-				(*out)->left = &_e_token;
+				(*out)->left = &_e_token; // unspecified log is base e
 			}
 			else{
 				(*out)->left = &_empty_token;
 			}
 		}
+		// evaluate the argument
 		err = BuildTree(rightFrom, rightTo, &((*out)->right));
 		if(err){
 			return err;
 		}
 	}
 	else if((*out)->t == 'n'){
+		// same as left one operator, build from everything to the right, error if not the left most
 		if(selectedIndex != from){
 			return ERR_SYNTAX;
 		}
@@ -289,16 +307,19 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){
 
 
 char EvalTree(Token* root, double *out){
+	// Recursive function to evaluate token tree
+	// out carries the value of the evaluated tree
+	// return an error code
 	double arg1;
 	double arg2;
 	double val;
 	char err;
 	
-	if(root->t == 'a'){
+	if(root->t == 'a'){ // return the value of an atomic token
 		*out = root->value;
 		return SUCCESS;
 	}
-	else if(root->t == '_'){
+	else if(root->t == '_'){ // catch errors or empty tokens
 		val = Maths(root->t, 0, 0);
 		*out = val;
 		return SUCCESS;
@@ -308,8 +329,8 @@ char EvalTree(Token* root, double *out){
 		*out = val;
 		return SUCCESS;
 	}
-	else if(In(root->t, _operations)){
-		err = EvalTree(root->left, &arg1);
+	else if(In(root->t, _operations)){ // evaluate operators
+		err = EvalTree(root->left, &arg1); // evaluate both sides of the tree
 		if(err){
 			return err;
 		}
@@ -317,14 +338,14 @@ char EvalTree(Token* root, double *out){
 		if(err){
 			return err;
 		}
-		val = Maths(root->t, arg1, arg2);
-		if(IsNand(val)){
+		val = Maths(root->t, arg1, arg2); // calculate the value of the node
+		if(IsNand(val)){ // maths errors are returned as NaNs, catch them, and propagate them up the tree
 			return ERR_MATHS;
 		}
-		*out = val;
+		*out = val; // return evaluated value
 		return SUCCESS;
 	}
-	else{
+	else{ // something went wrong
 		return ERR_SYNTAX;
 	}
 	
@@ -332,6 +353,8 @@ char EvalTree(Token* root, double *out){
 
 
 char AddToken(unsigned char t, double value){
+	// add token of type t and value value to the _tokens buffer
+	// check for buffer overflow, and return error code
 	_tokens[_token_index].t = t;
 	_tokens[_token_index].value = value;
 	_token_index++;
@@ -343,6 +366,9 @@ char AddToken(unsigned char t, double value){
 
 
 unsigned char Evaluate(char *buffer, unsigned short index, double *out){
+	// evaluate char buffer sent from the calculator
+	// store value of the evaluation in out
+	// return error code
 	unsigned short i = 0;
 	short atomic_state = -1;
 	double atomic_value = 0;
@@ -352,6 +378,7 @@ unsigned char Evaluate(char *buffer, unsigned short index, double *out){
 	int open_bracket_count = 0;
 	Token* root;
 	
+	// init generic tokens
 	_token_index = 0;
 	_empty_token.t = '_';
 	_e_token.t = 'a';
@@ -359,70 +386,73 @@ unsigned char Evaluate(char *buffer, unsigned short index, double *out){
 	_2_token.t = 'a';
 	_2_token.value = 2;
 	
+	// if the buffer is completely empty, return 0
 	*out = 0;
 	if(index <= 0){
 		_memoryANS = *out;
 		return SUCCESS;
 	}
 	
-	// validate chars
+	// validate buffer items, and build atomics
 	for(i = 0; i < index; i++){
-		if(!In(buffer[i], _valid_chars)){
+		if(!In(buffer[i], _valid_chars)){ // this shouldn't happen. but in case there's an unexpected char, throw an internal error
 			return ERR_INTERNAL;
 		}
 		
+		// build atomic tokens from numbers
 		in_atomic = In(buffer[i], _in_atomic);
-		if(buffer[i] == '.'){
+		if(buffer[i] == '.'){ // start of the decimal fraction
 			if(atomic_state == 0){
 					atomic_state = 1;
 			}
 			else{
-				return ERR_SYNTAX;
+				return ERR_SYNTAX; // if more than one decimal is present, throw an error
 			}
 		}
 		else if(in_atomic){
-			if(atomic_state <= 0){
+			if(atomic_state <= 0){ // add to the tens part of the atomic
 				atomic_value = atomic_value * 10 + CharToDouble(buffer[i]);
 				atomic_state = 0;
 			}
-			else{
+			else{ // add to the decimal fraction part
 				atomic_value += powd(10, -atomic_state) * CharToDouble(buffer[i]);
 				atomic_value = roundd(atomic_value, atomic_state);
 				atomic_state++;
 			}
 		}
-		else{
+		else{ // end of an atomic, save the token
 			if(atomic_state >= 0){
 				err = AddToken('a', atomic_value);
-				if(err){
+				if(err){ // catch buffer overflow
 					return err;
 				}
-				atomic_state = -1;
+				atomic_state = -1; // reset atomic builder
 				atomic_value = 0;
 			}
 		}
 		in_named_atomic = In(buffer[i], _named_atomic);
-		if(in_named_atomic){
+		if(in_named_atomic){ // catch named atomics and replace with atomic with value
 			err = AddToken('a', IdentifyAtomic(buffer[i]));
-			if(err){
+			if(err){ // catch buffer overflow
 				return err;
 			}
 		}
 		
-		if(!in_named_atomic && !in_atomic && buffer[i] != '.'){
+		if(!in_named_atomic && !in_atomic && buffer[i] != '.'){ // add everything else in the buffer
 			err = AddToken(buffer[i], 0);
-			if(err){
+			if(err){ // catch buffer overflow
 				return err;
 			}
 		}
 	}
-	if(atomic_state >= 0){
+	if(atomic_state >= 0){ // store final atomic
 		err = AddToken('a', atomic_value);
-		if(err){
+		if(err){ // catch buffer overflow
 			return err;
 		}
 	}
 	
+	// check brackets
 	for(i = 0; i < _token_index; i++){
 		if(In(_tokens[i].t, _open_bracket)){
 			open_bracket_count++;
@@ -431,6 +461,7 @@ unsigned char Evaluate(char *buffer, unsigned short index, double *out){
 			open_bracket_count--;
 		}
 	}
+	// add extra close brackets to the start
 	for(i = 0; i < open_bracket_count; i++){
 		err = AddToken(')', 0);
 		if(err){
@@ -438,19 +469,18 @@ unsigned char Evaluate(char *buffer, unsigned short index, double *out){
 		}
 		open_bracket_count--;
 	}
-	if(open_bracket_count < 0){
-		//????
-	}
-	
+	// build tree out of the buffer
 	err = BuildTree(0, _token_index, &root);
-	
+	// if tree is built, evaluate it
 	if (err == SUCCESS){
 		err = EvalTree(root, out);
 	}
+	// throw error from BuildTree and EvalTree
 	if(err){
 		return err;
 	}
 	
+	// catch numbers too small or too large
 	if(absd(*out) > MAX_VALUE){
 		return ERR_NUMBER_TOO_LARGE;
 	}
@@ -458,6 +488,7 @@ unsigned char Evaluate(char *buffer, unsigned short index, double *out){
 		return ERR_NUMBER_TOO_SMALL;
 	}
 	
+	// store result to ans
 	StoreMemory('a', *out);
 	return SUCCESS;
 }
