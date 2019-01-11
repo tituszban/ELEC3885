@@ -79,7 +79,6 @@ double IdentifyAtomic(char a){
 }
 
 void StoreMemory(char a, double v){
-	// store value in memory and EEPROM
 	switch(a){
 		case 'A': _memoryA = v; break;
 		case 'B': _memoryB = v; break;
@@ -87,7 +86,6 @@ void StoreMemory(char a, double v){
 		case 'D': _memoryD = v; break;
 		case 'a': _memoryANS = v;
 	}
-	// SAVE TO EEPROM
 }
 char BuildTree(unsigned short from, unsigned short to, Token** out){
 	// Recursive function to build a tree of Tokens out of a section of the Token buffer
@@ -151,14 +149,17 @@ char BuildTree(unsigned short from, unsigned short to, Token** out){
 				if(( (i <= from) || // check the left hand side
 						 // check middle operators, that it must have an atomic, an close bracket or a right operator to the left of it
 						 (In(_tokens[i].t, _middle_operator)    && (_tokens[i - 1].t == 'a' || _tokens[i - 1].t == ')' || In(_tokens[i - 1].t, _right_one_operator))) ||
-					   // check left one operator, that it must have an open bracket, middle operator or negate sign next to it
+					   // check left one operator, that it must have an open bracket, middle operator or negate sign to the left of it
 						 (In(_tokens[i].t, _left_one_operator)  && (In(_tokens[i - 1].t, _open_bracket) || In(_tokens[i - 1].t, _middle_operator) || _tokens[i - 1].t == 'n')) ||
-				     // check left two operator 
+				     // check left two operator, that it must have an open bracket, middle operator or negate sign to the left of it
 						 (In(_tokens[i].t, _left_two_operator)  && (In(_tokens[i - 1].t, _open_bracket) || In(_tokens[i - 1].t, _middle_operator) || _tokens[i - 1].t == 'n')) ||
+						 // check right one operator, that it must have a close bracket, atomic right one operator to the left of it
 					   (In(_tokens[i].t, _right_one_operator) && (_tokens[i - 1].t == ')' || _tokens[i - 1].t == 'a' || In(_tokens[i - 1].t, _right_one_operator))))
 						&&
-					 ( (i >= to - 1) ||
+					 ( (i >= to - 1) || // check the right hand side
+						 // check middle operator, that it must have an atomic, open bracket, left one, left two or middle operator to the right of it
 				     (In(_tokens[i].t, _middle_operator)    && (_tokens[i + 1].t == 'a' || In(_tokens[i + 1].t, _open_bracket) || In(_tokens[i + 1].t, _left_one_operator) || In(_tokens[i + 1].t, _left_two_operator) || In(_tokens[i + 1].t, _middle_operator))) ||
+				     // check left one operator, that it must have an open bracket to the right of it
 						 (In(_tokens[i].t, _left_one_operator)  && (In(_tokens[i + 1].t, _open_bracket))) ||
 						 (In(_tokens[i].t, _left_two_operator)  && (In(_tokens[i + 1].t, _open_bracket) || In(_tokens[i + 1].t, _middle_operator) || _tokens[i + 1].t == 'a')) ||
 					   (In(_tokens[i].t, _right_one_operator) && (_tokens[i + 1].t == ')' || In(_tokens[i + 1].t, _middle_operator) || In(_tokens[i + 1].t, _right_one_operator))) ||
