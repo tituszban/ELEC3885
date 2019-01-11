@@ -8,6 +8,7 @@ void SysTick_Init(void){
 }
 
 void PLL_Init(void){
+	// taken from a lab
 	SysTick_Init();
   // 0) Use RCC2
   SYSCTL_RCC2_R |=  0x80000000;  // USERCC2
@@ -40,6 +41,7 @@ void SysTickWait(unsigned long delay){
   }
 }
 
+// shorthand functions for different scale waits, to simplify calling waits
 void SysTickWaitMS(unsigned long delayms){
 	SysTickWait(delayms * 20000);
 }

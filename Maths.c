@@ -1,5 +1,6 @@
 #include "Maths.h"
 
+// define all operands
 ////        arg1   arg2
 double  sind(double,double); // sin(arg1)
 double asind(double,double); // asin(arg1)
@@ -19,9 +20,10 @@ double  plus(double,double); // arg1 + arg2
 double minus(double,double); // arg1 - arg2
 double noop(double,double);  // NAN
 
+// typedef opernad functions
 typedef double (*ops)(double arg1, double arg2);
 
-ops FunctionLookup(char op){
+ops FunctionLookup(char op){ // take char marking an operand and return the corresponding function
 	switch(op){
 			case 's': return sind;
 			case 'd': return asind;
@@ -43,7 +45,7 @@ ops FunctionLookup(char op){
 		}
 }
 
-double Maths(char op,double arg1, double arg2) {
+double Maths(char op,double arg1, double arg2) { // evaluate operand specified by char with two args
 
 	static double ans;
 	
@@ -57,6 +59,8 @@ double Maths(char op,double arg1, double arg2) {
 	
 }
 
+// implement operand functions
+
 double absf(double v){
 	if(v < 0){
 		return -v;
@@ -64,7 +68,7 @@ double absf(double v){
 	return v;
 }
 
-char IsInt(double n, int* out){
+char IsInt(double n, int* out){ // round close to int doubles to int
 	double tolerance = 1e-7;
 	if(absf(n - roundf(n)) < tolerance){
 			*out = (int)roundf(n);
@@ -157,7 +161,7 @@ double absd(double arg1){
 	return absf(arg1);
 }
 
-double roundd(double arg1, int decimal){
+double roundd(double arg1, int decimal){ // round to decimal precision
 	double d = powd(10, decimal);
 	double id = powd(10, -decimal);
 	arg1 = round(arg1 * d) * id;

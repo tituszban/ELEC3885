@@ -1,7 +1,7 @@
 #include "util.h"
 
 
-unsigned char Normalise(unsigned char v){
+unsigned char Normalise(unsigned char v){ // normalise any char into a 0x00 or 0x01
 	if(v){
 		return 0x1;
 	}
@@ -10,7 +10,7 @@ unsigned char Normalise(unsigned char v){
 	}
 }
 
-unsigned short NormaliseShort(unsigned short v){
+unsigned short NormaliseShort(unsigned short v){ // normalise any short into an 0x00 or 0x01
 	if(v){
 		return 0x1;
 	}
@@ -19,7 +19,7 @@ unsigned short NormaliseShort(unsigned short v){
 	}
 }
 
-char In(char c, char* arr){
+char In(char c, char* arr){ // check if char is in null ended char array
 	while(*arr){
 		if(c == *arr){
 			return 0xFF;
@@ -29,7 +29,7 @@ char In(char c, char* arr){
 	return 0x0;	
 }
 
-unsigned short IndexOf(char c, char* arr){
+unsigned short IndexOf(char c, char* arr){ // get index of char in null ended char array
 	unsigned short i = 0;
 	while(*arr){
 		if(c == *arr){
